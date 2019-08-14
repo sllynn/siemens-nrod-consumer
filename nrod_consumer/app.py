@@ -3,20 +3,25 @@ import stomp
 import boto3
 import socket
 import os
+import time
 
 
-kinesis_client = boto3.client('kinesis')
-MSGBROKERFQDN = "datafeeds.networkrail.co.uk"
-MSGBROKERPORT = 61618
-USERNAME = "andrew.weaver@databricks.com"
-PASSWORD = os.getenv("MSGBROKERPASSWORD")
+MSG_BROKER_HOST = "datafeeds.networkrail.co.uk"
+MSG_BROKER_PORT = 61618
+MSG_BROKER_USERNAME = os.getenv("MSG_BROKER_USERNAME")
+MSG_BROKER_PASSWORD = os.getenv("MSG_BROKER_PASSWORD")
 TOPIC = "/topic/TRAIN_MVT_HY_TOC"
 CLIENT_ID = socket.getfqdn()
 HEARTBEAT_INTERVAL_MS = 15000
 RECONNECT_DELAY_SECS = 15
+POLL_INTERVAL_SECS = 1
+POLL_ATTEMPTS = 90
+KINESIS_STREAM = "nrod-siemens"
 
 
 class StompClient(stomp.ConnectionListener):
+    def __init__(self, kinesis_client):
+        self.kinesis_client = kinesis_client
 
     def on_heartbeat(self):
         print('Received a heartbeat')
@@ -33,23 +38,29 @@ class StompClient(stomp.ConnectionListener):
         exit(-1)
 
     def on_connecting(self, host_and_port):
-        print('Connecting to ' + host_and_port[0])
+        print('Connecting to {h}'.format(h=host_and_port[0]))
 
     def on_message(self, headers, message):
         try:
             print('\n---\nGot message %s' % message)
         except Exception as e:
             print("\n\tError: %s\n--------\n" % str(e))
+        msgs = json.loads(message)
+        self.kinesis_client.put_records(
+            Records=[dict(Data=json.dumps(msg), PartitionKey=msg["body"]["train_id"]) for msg in msgs],
+            StreamName="nrod-siemens")
 
 
 def connect_and_subscribe(connection):
     connection.start()
 
-    connect_header = {'client-id': USERNAME + '-' + CLIENT_ID}
-    subscribe_header = {'activemq.subscriptionName': CLIENT_ID}
-
-    connection.connect(username=USERNAME,
-                       passcode=PASSWORD,
+    connect_header = {'client-id': MSG_BROKER_USERNAME + '-' + CLIENT_ID}
+    subscribe_header = {
+        'activemq.subscriptionName': CLIENT_ID,
+        'activemq.prefetchSize': 1
+    }
+    connection.connect(username=MSG_BROKER_USERNAME,
+                       passcode=MSG_BROKER_PASSWORD,
                        wait=True,
                        headers=connect_header)
 
@@ -80,16 +91,25 @@ def lambda_handler(event, context):
         Return doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html
     """
 
-    conn = stomp.Connection12([(MSGBROKERFQDN, MSGBROKERPORT)],
+    if not MSG_BROKER_PASSWORD:
+        return dict(
+            statusCode=401,
+            body=json.dumps(dict(message="no password supplied"))
+        )
+
+    conn = stomp.Connection12([(MSG_BROKER_HOST, MSG_BROKER_PORT)],
                               auto_decode=False,
                               heartbeats=(HEARTBEAT_INTERVAL_MS, HEARTBEAT_INTERVAL_MS))
-    conn.set_listener('', StompClient())
+
+    conn.set_listener('', StompClient(kinesis_client=boto3.client('kinesis')))
     connect_and_subscribe(conn)
 
-    return {
-        "statusCode": 200,
-        "body": json.dumps({
-            "message": "hello world",
-            # "location": ip.text.replace("\n", "")
-        }),
-    }
+    for _ in range(POLL_ATTEMPTS):
+        time.sleep(POLL_INTERVAL_SECS)
+
+    conn.disconnect()
+
+    return dict(
+        statusCode=200,
+        body=json.dumps(dict(message="polling complete, terminating"))
+    )
