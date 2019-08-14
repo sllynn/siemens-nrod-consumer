@@ -1,1 +1,3 @@
 requests
+boto3
+stomp.py==4.1.22
