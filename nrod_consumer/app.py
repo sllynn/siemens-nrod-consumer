@@ -20,8 +20,8 @@ KINESIS_STREAM = "nrod-siemens"
 
 
 class StompClient(stomp.ConnectionListener):
-    def __init__(self, kinesis_client):
-        self.kinesis_client = kinesis_client
+    def __init__(self):
+        self.kinesis_client = boto3.client("kinesis")
 
     def on_heartbeat(self):
         print('Received a heartbeat')
@@ -101,7 +101,7 @@ def lambda_handler(event, context):
                               auto_decode=False,
                               heartbeats=(HEARTBEAT_INTERVAL_MS, HEARTBEAT_INTERVAL_MS))
 
-    conn.set_listener('', StompClient(kinesis_client=boto3.client('kinesis')))
+    conn.set_listener('', StompClient())
     connect_and_subscribe(conn)
 
     for _ in range(POLL_ATTEMPTS):
