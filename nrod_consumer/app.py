@@ -136,7 +136,7 @@ def lambda_handler(event, context):
     conn.set_listener('', StompClient())
     connect_and_subscribe(
         connection=conn,
-        credentials=json.loads(get_secret("nrod-consumer-secrets")),
+        credentials=json.loads(get_secret(os.getenv("SECRET_NAME"))),
         topic=os.getenv("MSG_BROKER_TOPIC"))
 
     for _ in range(POLL_ATTEMPTS):
