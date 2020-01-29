@@ -1,0 +1,104 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  AWS
+
+  Sample SAM Template for AWS
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 120
+
+Resources:
+  NRODConsumerFunctionHY:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: nrod_consumer/
+      Handler: app.lambda_handler
+      Runtime: python3.7
+      Environment:
+        Variables:
+          MSG_BROKER_HOST: "datafeeds.networkrail.co.uk"
+          MSG_BROKER_PORT: 61618
+          MSG_BROKER_TOPIC: "/topic/TRAIN_MVT_HY_TOC"
+          KINESIS_STREAM: "siemens-mobility-demo-stream"
+          SECRET_NAME: "siemens-mobility-demo-nrod-credentials"
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - SecretsManagerReadWrite
+        - AmazonKinesisFullAccess
+      Events:
+        NRODConsumerTickerHY:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 minute)
+
+  NRODConsumerFunctionHU:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: nrod_consumer/
+      Handler: app.lambda_handler
+      Runtime: python3.7
+      Environment:
+        Variables:
+          MSG_BROKER_HOST: "datafeeds.networkrail.co.uk"
+          MSG_BROKER_PORT: 61618
+          MSG_BROKER_TOPIC: "/topic/TRAIN_MVT_HU_TOC"
+          KINESIS_STREAM: "siemens-mobility-demo-stream"
+          SECRET_NAME: "siemens-mobility-demo-nrod-credentials"
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - SecretsManagerReadWrite
+        - AmazonKinesisFullAccess
+      Events:
+        NRODConsumerTickerHU:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 minute)
+
+  NRODConsumerFunctionHW:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: nrod_consumer/
+      Handler: app.lambda_handler
+      Runtime: python3.7
+      Environment:
+        Variables:
+          MSG_BROKER_HOST: "datafeeds.networkrail.co.uk"
+          MSG_BROKER_PORT: 61618
+          MSG_BROKER_TOPIC: "/topic/TRAIN_MVT_HW_TOC"
+          KINESIS_STREAM: "siemens-mobility-demo-stream"
+          SECRET_NAME: "siemens-mobility-demo-nrod-credentials"
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - SecretsManagerReadWrite
+        - AmazonKinesisFullAccess
+      Events:
+        NRODConsumerTickerHW:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 minute)
+
+  NRODConsumerFunctionET:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: nrod_consumer/
+      Handler: app.lambda_handler
+      Runtime: python3.7
+      Environment:
+        Variables:
+          MSG_BROKER_HOST: "datafeeds.networkrail.co.uk"
+          MSG_BROKER_PORT: 61618
+          MSG_BROKER_TOPIC: "/topic/TRAIN_MVT_ET_TOC"
+          KINESIS_STREAM: "siemens-mobility-demo-stream"
+          SECRET_NAME: "siemens-mobility-demo-nrod-credentials"
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - SecretsManagerReadWrite
+        - AmazonKinesisFullAccess
+      Events:
+        NRODConsumerTickerET:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 minute)
